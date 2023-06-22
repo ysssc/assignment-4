@@ -75,7 +75,9 @@ summary_table
 write.csv(summary_table, "summary_table.csv", row.names = FALSE)
 ```
 
-**Designated place**: type one or two sentences describing this table of a fellow student below. For example, comment on the mean and median growth of both groups. Then stage, commit and push it to their github repository. 
+**Designated place**: type one or two sentences describing this table of a fellow student below. For example, comment on the mean and median growth of both groups. Then stage, commit and push it to their github repository.
+
+# According to the table, countries with 0 revolutions, and those with more than 0 revolutions have a mean growth of 2.46, and 1.68, respectively. They - ones with 0, and more than 0 revolutions - also have a median growth of 2.29, and 1.92, respectively. This means that countries that don't have revolutions achieve a higher economic growth rate.
 
 
 ### Part 3: Make a table summarizing reressions using modelsummary and kable
