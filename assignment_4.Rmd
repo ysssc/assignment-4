@@ -1,0 +1,196 @@
+---
+title: | 
+  | Assignment 4: Collaborating Together
+  | Introduction to Applied Data Science
+  | 2022-2023
+author: |
+  | Siviya Chang
+  | y.chang1@students.uu.nl
+  | http://www.github.com/yourgithubname
+date: April 2023
+urlcolor: purple
+linkcolor: purple
+output: 
+  pdf_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, error=TRUE)
+```
+
+## Assignment 4: Collaborating Together 
+
+### Part 1: Contributing to another student's Github repository
+
+In this assignment, you will create a Github repository, containing this document and the .pdf output, which analyzes a dataset individually using some of the tools we have developed. 
+
+This time, make sure to not only put your name and student e-mail in your Rmarkdown header, but also your Github account, as I have done myself. 
+
+However, you will also pair up with a class mate and contribute to each others' Github repository. Each student is supposed to contribute to another student's work by writing a short interpretation of 1 or 2 sentences at the designated place (this place is marked with **designated place**) in the other student's assignment. 
+
+This interpretation will not be graded, but a Github shows the contributors to a certain repository. This way, we can see whether you have contributed to a repository of a class mate. 
+
+**Question 1.1**: Fill in the __github username__ of the class mate to whose repository you have contributed. 
+
+[szebo210]
+
+### Part 2: Analyzing various linear models
+
+In this part, we will summarize a dataset and create a couple of customized tables. Then, we will compare a couple of linear models to each other, and see which linear model fits the padata the best, and yields the most interesting results.
+
+We will use a dataset called `GrowthSW` from the `AER` package. This is a dataset containing 65 observations on 6 variables and investigates the determinants of economic growth. First, we will try to summarize the data using the `modelsummary` package. 
+
+```{r, warning=FALSE, message=FALSE}
+install.packages("AER")
+library(AER)
+data(GrowthSW)
+```
+
+One of the variables in the dataset is `revolutions`, the number of revolutions, insurrections and coup d'etats in country $i$ from 1965 to 1995.
+
+**Question 2.1**: Using the function `datasummary`, summarize the mean, median, sd, min, and max of the variables `growth`, and `rgdp60` between two groups: countries with `revolutions` equal to 0, and countries with more than 0 revolutions. Call this variable `treat`. Make sure to also write the resulting data set to memory. Hint: you can check some examples [here](https://vincentarelbundock.github.io/modelsummary/articles/datasummary.html#datasummary).
+
+```{r}
+library(modelsummary); library(tidyverse)
+library(AER)
+data(GrowthSW)
+
+GrowthSW <- GrowthSW %>%
+  mutate(treat = ifelse(revolutions > 0, "More than 0", "0"))
+summary_table <- GrowthSW %>%
+  group_by(treat) %>%
+  summarize(mean_growth = mean(growth),
+            median_growth = median(growth),
+            sd_growth = sd(growth),
+            min_growth = min(growth),
+            max_growth = max(growth),
+            mean_rgdp60 = mean(rgdp60),
+            median_rgdp60 = median(rgdp60),
+            sd_rgdp60 = sd(rgdp60),
+            min_rgdp60 = min(rgdp60),
+            max_rgdp60 = max(rgdp60))
+
+summary_table
+
+write.csv(summary_table, "summary_table.csv", row.names = FALSE)
+```
+
+**Designated place**: type one or two sentences describing this table of a fellow student below. For example, comment on the mean and median growth of both groups. Then stage, commit and push it to their github repository. 
+
+
+### Part 3: Make a table summarizing reressions using modelsummary and kable
+
+In question 2, we have seen that growth rates differ markedly between countries that experienced at least one revolution/episode of political stability and countries that did not. 
+
+**Question 3.1**: Try to make this more precise this by performing a t-test on the variable growth according to the group variable you have created in the previous question. 
+
+```{r}
+t_test_result <- t.test(GrowthSW$growth ~ GrowthSW$treat)
+
+t_test_result
+```
+
+**Question 3.2**: What is the $p$-value of the test, and what does that mean? Write down your answer below.
+
+The $p$-value of the t-test is 0.06871. This $p$-value indicates the significant difference between the mean growth rates of the two groups. Since the $p$-value is greater than the commonly used significance level (0.05), the null hypothesis can't be rejected.
+
+
+We can also control for other factors by including them in a linear model, for example:
+
+$$
+\text{growth}_i = \beta_0 + \beta_1 \cdot \text{treat}_i + \beta_2 \cdot \text{rgdp60}_i + \beta_3 \cdot \text{tradeshare}_i + \beta_4 \cdot \text{education}_i + \epsilon_i
+$$
+
+**Question 3.3**: What do you think the purpose of including the variable `rgdp60` is? Look at `?GrowthSW` to find out what the variables mean. 
+
+The variable rgdp60 represents the real GDP of each country in 1960. The purpose of including the rgdp60 variable may be to explore the effect of real GDP on economic growth. By including real GDP as a control variable in the model, the impact of real GDP on the difference between revolution and economic growth can be controled. 
+
+
+We now want to estimate a stepwise model. Stepwise means that we first estimate a univariate regression $\text{growth}_i = \beta_0 + \beta_1 \cdot \text{treat}_i + \epsilon_i$, and in each subsequent model, we add one control variable. 
+
+**Question 3.4**: Write four models, titled `model1`, `model2`, `model3`, `model4` (using the `lm` function) to memory. Hint: you can also use the `update` function to add variables to an already existing specification.
+
+```{r}
+model1 <- lm(growth ~ treat, data = GrowthSW)
+
+model2 <- update(model1, . ~ . + rgdp60)
+
+model3 <- update(model2, . ~ . + tradeshare)
+
+model4 <- update(model3, . ~ . + education)
+```
+
+Now, we put the models in a list, and see what `modelsummary` gives us:
+
+```{r}
+list(model1, model2, model3, model4) |>
+  modelsummary(stars=T, gof_map = c("nobs", "r.squared"))
+```
+
+**Question 3.5**: Edit the code chunk above to remove many statistics from the table, but keep only the number of observations $N$, and the $R^2$ statistic. 
+```{r}
+library(modelsummary)
+
+model_list <- list(model1, model2, model3, model4)
+
+summary_df <- data.frame(Model = character(),
+                         R.squared = numeric(),
+                         N = numeric(),
+                         stringsAsFactors = FALSE)
+
+for (i in seq_along(model_list)) {
+  model <- model_list[[i]]
+  r_squared <- summary(model)$r.squared
+  n <- length(model$residuals)
+  
+  summary_df[i, ] <- c(paste0("Model ", i), r_squared, n)
+}
+
+print(summary_df)
+```
+
+**Question 3.6**: According to this analysis, what is the main driver of economic growth? Why?
+According to this analysis, model 4 has the highest R-squared value of 0.318. This means that the model can explain 31.8% of the variability in economic growth. According to this analysis, level of education is the main drivers of economic growth and has a positive effect on economic growth. This shows that the improvement of education level can boost economic growth and development.
+
+**Question 3.7**: In the code chunk below, edit the table such that the cells (including standard errors) corresponding to the variable `treat` have a red background and white text. Make sure to load the `kableExtra` library beforehand.
+```{r}
+install.packages("kableExtra")
+```
+
+```{r}
+library(kableExtra)
+library(modelsummary)
+
+list(model1, model2, model3, model4) |>
+  modelsummary(output = "kableExtra", stars=T, gof_map = c("nobs", "r.squared")) |>
+  row_spec(row = 3, background = "red", color ="white") |>
+  row_spec(row = 4, background = "red", color ="white") |>
+
+  kable_styling()
+```
+
+**Question 3.8**: Write a piece of code that exports this table (without the formatting) to a Word document. 
+```{r}
+install.packages("officer")
+```
+
+```{r}
+library(kableExtra)
+library(modelsummary)
+library(officer)
+
+table <- list(model1, model2, model3, model4) |>
+  modelsummary(output = "kableExtra", stars = TRUE, gof_map = c("nobs", "r.squared"))
+
+doc <- read_docx()
+flextable_object <- as_flextable(table)
+doc <- doc %>%
+  body_add_flextable(flextable_object)
+
+output_file <- "/Users/siviyachang/Desktop/applied_data_science/assignment4.docx"
+
+print(doc, target = output_file)
+```
+
+## The End
+
